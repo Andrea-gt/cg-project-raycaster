@@ -146,21 +146,28 @@ public:
     return Impact{d, mapHit, tx};
   }
 
-  void draw_stake(int x, float h, Impact i) {
+  void draw_stake(int x, float h, Impact i, float fogFactor) {
     float start = SCREEN_HEIGHT/2.0f - h/2.0f;
     float end = start + h;
 
     for (int y = start; y < end; y++) {
       int ty = (y - start) * tsize / h;
-      Color c = ImageLoader::getPixelColor(i.mapHit, i.tx, ty);
-      SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+      Color wallColor = ImageLoader::getPixelColor(i.mapHit, i.tx, ty);
+      Color fogColor(108, 99, 116); // Fog color
 
+      // Interpolate between the wall color and fog color based on fog factor
+      Color c = wallColor * (1.0f - fogFactor) + fogColor * fogFactor ;
+
+      SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
       SDL_RenderDrawPoint(renderer, x, y);
     }
   } 
  
   void render() {
-    
+
+      // Fog variables
+      const float maxRenderDistance = 500.0f; // Adjust this as needed for your scene
+
     // draw left side of the screen
    /* 
     for (int x = 0; x < SCREEN_WIDTH; x += BLOCK) {
@@ -188,14 +195,16 @@ public:
       double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
       Impact impact = cast_ray(a);
       float d = impact.d;
-      Color c = Color(255, 0, 0);
+
+      // Calculate fog effect based on distance
+      float fogFactor = std::min(d / maxRenderDistance, 1.0f);
 
       if (d == 0) {
         exit(1);
       }
       int x = i;
       float h = static_cast<float>(SCREEN_HEIGHT)/static_cast<float>(d * cos(a - player.a)) * static_cast<float>(scale);
-      draw_stake(x, h, impact);
+      draw_stake(x, h, impact, fogFactor);
     }
 
     for(Enemy enemy : enemies) {

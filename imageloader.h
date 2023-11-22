@@ -67,7 +67,7 @@ public:
         return Color{color.r, color.g, color.b, color.a};
     }
 
-    static void render(SDL_Renderer* renderer, const std::string& key, int x, int y, int h = -1, int v = -1) {
+    static void render(SDL_Renderer* renderer, const std::string& key, int x, int y, int h = -1, int v = -1, Uint8 alpha = 255) {
         auto it = imageSurfaces.find(key);
         if (it == imageSurfaces.end()) {
             throw std::runtime_error("Image key not found!");
@@ -81,6 +81,9 @@ public:
             throw std::runtime_error("Unable to create texture from surface! SDL Error: " + std::string(SDL_GetError()));
         }
 
+        // Set the alpha modulation for rendering
+        SDL_SetTextureAlphaMod(texture, alpha);
+
         // Set render destination and render the texture
         SDL_Rect destRect;
         if (h == -1) {
@@ -93,6 +96,7 @@ public:
         // Free the created texture
         SDL_DestroyTexture(texture);
     }
+
 
     // Clean up
     static void cleanup() {

@@ -10,7 +10,7 @@
 #include "raycaster.h"
 
 // Music
-#define WAV_PATH "../assets/footSteps.wav"
+#define BG_PATH "../assets/bgMusic.wav"
 
 // Sound effects
 #define WAV_PATH "../assets/footSteps.wav"
@@ -25,7 +25,7 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 
 void clear() {
-    SDL_SetRenderDrawColor(renderer, 184, 172, 189, 255);
+    SDL_SetRenderDrawColor(renderer, 108, 99, 116, 255);
     SDL_RenderClear(renderer);
 }
 
@@ -44,7 +44,9 @@ void draw_floor() {
 void draw_ui() {
     /* int size = 256; */
     /* ImageLoader::render(renderer, "p", SCREEN_WIDTH/2.0f - size/2.0f, SCREEN_HEIGHT - size, size); */
-    ImageLoader::render(renderer, "bg", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    // Inside the main loop after initializing SDL and other components
+    //ImageLoader::render(renderer, "bg", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 70);
 }
 
 int main() {
@@ -77,6 +79,13 @@ int main() {
     }
 
     //Load sound effects
+    bgMusic = Mix_LoadMUS( BG_PATH);
+    if( bgMusic == NULL )
+    {
+        printf( "Failed to load music! SDL_mixer Error: %s\n", Mix_GetError() );
+    }
+
+    //Load sound effects
     gFootsteps = Mix_LoadWAV(WAV_PATH);
     if( gFootsteps == NULL )
     {
@@ -105,6 +114,9 @@ int main() {
     int speed = 2;
     bool isMoving = false; // Flag to track if the player is moving
     int isStep = 0; // Flag to track if the player is moving
+
+    // Play background music
+    Mix_PlayMusic(bgMusic, -1); // -1 loops the music indefinitely
 
     while(running) {
         SDL_Event event;
