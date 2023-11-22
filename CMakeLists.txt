@@ -26,4 +26,5 @@ include_directories(${SDL2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}
         ${SDL2_LIBRARIES}
         SDL2_image
+        SDL2_mixer
         )

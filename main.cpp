@@ -4,10 +4,16 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
-
+#include <SDL2/SDL_mixer.h>
 #include "color.h"
 #include "imageloader.h"
 #include "raycaster.h"
+
+// Sound effects
+#define WAV_PATH "../assets/footSteps.wav"
+
+//The sound effects that will be used
+Mix_Chunk* gFootsteps = NULL;
 
 SDL_Window* window;
 SDL_Renderer* renderer;
@@ -37,7 +43,7 @@ void draw_ui() {
 
 int main() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-
+    const int VOLUME_LEVEL = 10; // Adjust this as needed
     int num_joysticks = 0;
     auto joysticks = std::vector<SDL_Joystick*>();
 
@@ -55,6 +61,20 @@ int main() {
             joysticks.push_back(joystick);
         }
     } // https://gist.github.com/adituv/b72ce0d0ee31e6382ae7c2136a4f7bc8
+
+
+    //Initialize SDL_mixer
+    if(Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
+    {
+        printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
+    }
+
+    //Load sound effects
+    gFootsteps = Mix_LoadWAV(WAV_PATH);
+    if( gFootsteps == NULL )
+    {
+        printf( "Failed to load scratch sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+    }
 
     ImageLoader::init();
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -76,6 +96,8 @@ int main() {
 
     bool running = true;
     int speed = 2;
+    bool isMoving = false; // Flag to track if the player is moving
+
     while(running) {
         SDL_Event event;
 
@@ -99,18 +121,24 @@ int main() {
                         if (event.jaxis.value > 5000) { // Backward motion
                             r.player.x -= speed * cos(r.player.a);
                             r.player.y -= speed * sin(r.player.a);
-                            std::cout << "X2 Value: " <<  r.player.x << std::endl;
-                            std::cout << "Y2 Value: " <<  r.player.y << std::endl;
-
+                            isMoving = true; // Player is moving
                         } else if (event.jaxis.value < -5000) { // Forward motion
                             r.player.x += speed * cos(r.player.a);
                             r.player.y += speed * sin(r.player.a);
-
-                            std::cout << "X Value: " <<  r.player.x << std::endl;
-                            std::cout << "Y Value: " <<  r.player.y << std::endl;
+                            isMoving = true; // Player is moving
+                        } else {
+                            isMoving = false; // Player stopped moving
                         }
                         break;
                 }
+            }
+
+            // Play footsteps sound only if the player is moving
+            if (isMoving) {
+                Mix_VolumeChunk(gFootsteps, VOLUME_LEVEL); // Set the volume of the sound
+                Mix_PlayChannel(-1, gFootsteps, -1); // -1 loops indefinitely, 0 plays once
+            } else {
+                Mix_HaltChannel(-1); // Stop the sound if the player stops moving
             }
         }
 
