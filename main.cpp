@@ -9,8 +9,14 @@
 #include "imageloader.h"
 #include "raycaster.h"
 
+// Music
+#define WAV_PATH "../assets/footSteps.wav"
+
 // Sound effects
 #define WAV_PATH "../assets/footSteps.wav"
+
+//The music that will be played
+Mix_Music* bgMusic = NULL;
 
 //The sound effects that will be used
 Mix_Chunk* gFootsteps = NULL;
@@ -19,13 +25,13 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 
 void clear() {
-    SDL_SetRenderDrawColor(renderer, 56, 56, 56, 255);
+    SDL_SetRenderDrawColor(renderer, 184, 172, 189, 255);
     SDL_RenderClear(renderer);
 }
 
 void draw_floor() {
     // floor color
-    SDL_SetRenderDrawColor(renderer, 112, 122, 122, 255);
+    SDL_SetRenderDrawColor(renderer, 28, 38, 41, 255);
     SDL_Rect rect = {
             0,
             SCREEN_HEIGHT / 2,
@@ -43,7 +49,8 @@ void draw_ui() {
 
 int main() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-    const int VOLUME_LEVEL = 10; // Adjust this as needed
+    const int VOLUME_LEVEL = 20; // Adjust this as needed
+    const int STEPS_FOR_SOUND = 10;
     int num_joysticks = 0;
     auto joysticks = std::vector<SDL_Joystick*>();
 
@@ -82,11 +89,11 @@ int main() {
     window = SDL_CreateWindow("DOOM", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    ImageLoader::loadImage("+", "../assets/wall3.png");
-    ImageLoader::loadImage("-", "../assets/wall1.png");
-    ImageLoader::loadImage("|", "../assets/wall2.png");
-    ImageLoader::loadImage("*", "../assets/wall4.png");
-    ImageLoader::loadImage("g", "../assets/wall5.png");
+    ImageLoader::loadImage("+", "../sh1-textures/wall5.png");
+    ImageLoader::loadImage("-", "../sh1-textures/wall1.png");
+    ImageLoader::loadImage("|", "../sh1-textures/wall2.png");
+    ImageLoader::loadImage("*", "../sh1-textures/wall4.png");
+    ImageLoader::loadImage("g", "../sh1-textures/wall3.png");
     /* ImageLoader::loadImage("p", "assets/player.png"); */
     ImageLoader::loadImage("bg", "../assets/background.png");
     ImageLoader::loadImage("e1", "../assets/sprite1.png");
@@ -97,6 +104,7 @@ int main() {
     bool running = true;
     int speed = 2;
     bool isMoving = false; // Flag to track if the player is moving
+    int isStep = 0; // Flag to track if the player is moving
 
     while(running) {
         SDL_Event event;
@@ -118,14 +126,16 @@ int main() {
                         }
                         break;
                     case 3: // Axis 3 - Forward and Backward
-                        if (event.jaxis.value > 5000) { // Backward motion
+                        if (event.jaxis.value > 1000) { // Backward motion
                             r.player.x -= speed * cos(r.player.a);
                             r.player.y -= speed * sin(r.player.a);
                             isMoving = true; // Player is moving
-                        } else if (event.jaxis.value < -5000) { // Forward motion
+                            isStep++;
+                        } else if (event.jaxis.value < -1000) { // Forward motion
                             r.player.x += speed * cos(r.player.a);
                             r.player.y += speed * sin(r.player.a);
                             isMoving = true; // Player is moving
+                            isStep++;
                         } else {
                             isMoving = false; // Player stopped moving
                         }
@@ -133,12 +143,46 @@ int main() {
                 }
             }
 
+            else if (event.type == SDL_KEYDOWN) {
+                switch(event.key.keysym.sym ){
+                    case SDLK_LEFT:
+                        r.player.a += 3.14/24;
+                        break;
+                    case SDLK_RIGHT:
+                        r.player.a -= 3.14/24;
+                        break;
+                    case SDLK_UP:
+                        r.player.x += speed * cos(r.player.a);
+                        r.player.y += speed * sin(r.player.a);
+                        isMoving = true; // Player is moving
+                        isStep++;
+                        break;
+                    case SDLK_DOWN:
+                        r.player.x -= speed * cos(r.player.a);
+                        r.player.y -= speed * sin(r.player.a);
+                        isMoving = true; // Player is moving
+                        isStep++;
+                        break;
+                }
+            }
+
+            // Check if any arrow key was released to stop the movement
+            else if (event.type == SDL_KEYUP) {
+                switch(event.key.keysym.sym) {
+                    case SDLK_LEFT:
+                    case SDLK_RIGHT:
+                    case SDLK_UP:
+                    case SDLK_DOWN:
+                        isMoving = false; // Player stopped moving
+                        break;
+                }
+            }
+
             // Play footsteps sound only if the player is moving
-            if (isMoving) {
+            if (isMoving && isStep == STEPS_FOR_SOUND) {
                 Mix_VolumeChunk(gFootsteps, VOLUME_LEVEL); // Set the volume of the sound
-                Mix_PlayChannel(-1, gFootsteps, -1); // -1 loops indefinitely, 0 plays once
-            } else {
-                Mix_HaltChannel(-1); // Stop the sound if the player stops moving
+                Mix_PlayChannel(-1, gFootsteps, 0);
+                isStep = 0;
             }
         }
 
