@@ -22,6 +22,11 @@ Mix_Music* bgMusic = NULL;
 //The sound effects that will be used
 Mix_Chunk* gFootsteps = NULL;
 
+//Player sprite
+std::string playerStatus= "DEFAULT";
+
+bool isMenu = true;
+
 SDL_Window* window;
 SDL_Renderer* renderer;
 
@@ -43,10 +48,14 @@ void draw_floor() {
 }
 
 void draw_ui() {
-    ImageLoader::render(renderer, "p", SCREEN_WIDTH/2.0f - 200/2.0f, SCREEN_HEIGHT - 147, 200, 147);
-
+    // Player sprite
+    ImageLoader::render(renderer, playerStatus, SCREEN_WIDTH/2.0f - 200/2.0f + 100, SCREEN_HEIGHT - 147, 200, 147);
     // Inside the main loop after initializing SDL and other components
     ImageLoader::render(renderer, "bg", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 40);
+
+    if(isMenu){
+        ImageLoader::render(renderer, "menu", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 100);
+    }
   }
 
   int main() {
@@ -54,6 +63,8 @@ void draw_ui() {
       std::string title = "FPS: ";
 
       SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+      SDL_SetRelativeMouseMode(SDL_TRUE);
+
       const int VOLUME_LEVEL = 20; // Adjust this as needed
       const int STEPS_FOR_SOUND = 10;
       int num_joysticks = 0;
@@ -106,9 +117,11 @@ void draw_ui() {
       ImageLoader::loadImage("|", "../sh1-textures/wall2.png");
       ImageLoader::loadImage("*", "../sh1-textures/wall4.png");
       ImageLoader::loadImage("g", "../sh1-textures/wall3.png");
-      ImageLoader::loadImage("p", "../assets/pistol.png");
+      ImageLoader::loadImage("DEFAULT", "../assets/pistol.png");
+      ImageLoader::loadImage("LEFT", "../assets/pistolLeft.png");
+      ImageLoader::loadImage("RIGHT", "../assets/pistolRight.png");
       ImageLoader::loadImage("bg", "../assets/fog.png");
-      ImageLoader::loadImage("e1", "../assets/sprite1.png");
+      ImageLoader::loadImage("menu", "../sh1-textures/titleScreen.png");
 
       Raycaster r = { renderer };
       r.load_map("../assets/map.txt");
@@ -134,25 +147,28 @@ void draw_ui() {
               if (event.type == SDL_JOYAXISMOTION) {
                   switch(event.jaxis.axis) {
                       case 2: // Axis 2 - Left and Right
-                          if (event.jaxis.value > 0) {
+                          if (event.jaxis.value > 0 && isMenu == false) {
+                              playerStatus= "LEFT";
                               r.player.a -= M_PI / 5000000 * event.jaxis.value;
                           }
-                          else if (event.jaxis.value < 0) {
+                          else if (event.jaxis.value < 0 && isMenu == false) {
+                              playerStatus= "RIGHT";
                               r.player.a -= M_PI / 5000000 * event.jaxis.value;
                           }
                           break;
                       case 3: // Axis 3 - Forward and Backward
-                          if (event.jaxis.value > 1000) { // Backward motion
+                          if (event.jaxis.value > 1000 && isMenu == false) { // Backward motion
                               r.player.x -= speed * cos(r.player.a);
                               r.player.y -= speed * sin(r.player.a);
                               isMoving = true; // Player is moving
                               isStep++;
-                          } else if (event.jaxis.value < -1000) { // Forward motion
+                          } else if (event.jaxis.value < -1000 && isMenu == false) { // Forward motion
                               r.player.x += speed * cos(r.player.a);
                               r.player.y += speed * sin(r.player.a);
                               isMoving = true; // Player is moving
                               isStep++;
                           } else {
+                              playerStatus = "DEFAULT";
                               isMoving = false; // Player stopped moving
                           }
                           break;
@@ -162,22 +178,38 @@ void draw_ui() {
               else if (event.type == SDL_KEYDOWN) {
                   switch(event.key.keysym.sym ){
                       case SDLK_LEFT:
-                          r.player.a += 3.14/24;
+                          if(isMenu==false){
+                              r.player.a += 3.14/24;
+                              playerStatus= "LEFT";
+                          }
                           break;
                       case SDLK_RIGHT:
-                          r.player.a -= 3.14/24;
+                          if(isMenu==false) {
+                              playerStatus = "RIGHT";
+                              r.player.a -= 3.14 / 24;
+                          }
                           break;
                       case SDLK_UP:
-                          r.player.x += speed * cos(r.player.a);
-                          r.player.y += speed * sin(r.player.a);
-                          isMoving = true; // Player is moving
-                          isStep++;
+                          if(isMenu==false) {
+                              r.player.x += speed * cos(r.player.a);
+                              r.player.y += speed * sin(r.player.a);
+                              isMoving = true; // Player is moving
+                              isStep++;
+                          }
                           break;
                       case SDLK_DOWN:
-                          r.player.x -= speed * cos(r.player.a);
-                          r.player.y -= speed * sin(r.player.a);
-                          isMoving = true; // Player is moving
-                          isStep++;
+                          if(isMenu==false) {
+                              r.player.x -= speed * cos(r.player.a);
+                              r.player.y -= speed * sin(r.player.a);
+                              isMoving = true; // Player is moving
+                              isStep++;
+                          }
+                          break;
+                      case SDLK_ESCAPE:
+                          running = false;
+                          break;
+                      case SDLK_RETURN:
+                          isMenu = false;
                           break;
                   }
               }
@@ -189,8 +221,21 @@ void draw_ui() {
                       case SDLK_RIGHT:
                       case SDLK_UP:
                       case SDLK_DOWN:
+                          playerStatus = "DEFAULT";
                           isMoving = false; // Player stopped moving
                           break;
+                  }
+              }
+
+              else if (event.type == SDL_MOUSEMOTION) {
+                  if (event.motion.xrel < 0) {
+                      r.player.a += M_PI / 1000;
+                      playerStatus = "LEFT";
+                  } else if (event.motion.xrel > 0) {
+                      r.player.a -= M_PI / 1000;
+                      playerStatus = "RIGHT";
+                  } else {
+                      playerStatus = "DEFAULT"; // Set default when no movement detected
                   }
               }
 

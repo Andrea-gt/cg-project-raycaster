@@ -34,14 +34,6 @@ struct Impact {
   int tx;
 };
 
-struct Enemy {
-  int x;
-  int y;
-  std::string texture;
-};
-
-std::vector<Enemy> enemies;
-
 class Raycaster {
 public:
   Raycaster(SDL_Renderer* renderer)
@@ -56,8 +48,59 @@ public:
     scale = 50;
     tsize = 128;
 
-    enemies = {Enemy{BLOCK * 5, BLOCK, "e1"}};
   }
+
+    void simulateSnow() {
+        // Initialize snowflakes if it's the first frame
+        if (snowflakes.empty()) {
+            for (int i = 0; i < numSnowflakes; ++i) {
+                int snowX = rand() % SCREEN_WIDTH;
+                int snowY = rand() % SCREEN_HEIGHT;
+                snowflakes.push_back({ snowX, snowY });
+            }
+        }
+
+        // Change position of snowflakes every few frames
+        if (frameCount % framesPerUpdate == 0) {
+            for (auto& flake : snowflakes) {
+                int moveX = rand() % 10 - 1; // Random movement in X direction
+                int moveY = rand() % 10 - 1; // Random movement in Y direction
+
+                // Check boundaries before moving
+                int newX = flake.first + moveX;
+                int newY = flake.second + moveY;
+
+                if (newX >= 0 && newX < SCREEN_WIDTH && newY >= 0 && newY < SCREEN_HEIGHT) {
+                    flake.first = newX;
+                    flake.second = newY;
+                } else if (newX >= 0 && newX > SCREEN_WIDTH) {
+                    flake.first = 0;
+                    flake.second = newY;
+                } else {
+                    flake.first = newX;
+                    flake.second = 0;
+                }
+            }
+        }
+
+        // Draw snowflakes
+        for (const auto& flake : snowflakes) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                for (int dy = -1; dy <= 1; ++dy) {
+                    int nx = flake.first + dx;
+                    int ny = flake.second + dy;
+
+                    if (nx >= 0 && nx < SCREEN_WIDTH && ny >= 0 && ny < SCREEN_HEIGHT) {
+                        Uint8 alpha = rand() % 50 + 128;
+                        SDL_SetRenderDrawColor(renderer, 255, 255, 255, alpha);
+                        SDL_RenderDrawPoint(renderer, nx, ny);
+                    }
+                }
+            }
+        }
+
+        frameCount++;
+    }
 
   void load_map(const std::string& filename) {
     std::ifstream file(filename);
@@ -73,40 +116,14 @@ public:
     SDL_RenderDrawPoint(renderer, x, y);
   }
 
-  void rect(int x, int y, const std::string& mapHit) {
-    for(int cx = x; cx < x + BLOCK; cx++) {
-      for(int cy = y; cy < y + BLOCK; cy++) {
-        int tx = ((cx - x) * tsize) / BLOCK;
-        int ty = ((cy - y) * tsize) / BLOCK;
+    void drawPixel(int x, int y, const std::string& mapHit, double h, double f) {
+        int tx = static_cast<int>((h * tsize));
+        int ty = static_cast<int>((f * tsize));
 
         Color c = ImageLoader::getPixelColor(mapHit, tx, ty);
-        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b , 255);
-        SDL_RenderDrawPoint(renderer, cx, cy);
-      }
+        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
+        SDL_RenderDrawPoint(renderer, x, y);
     }
-  }
-
-  void draw_enemy(Enemy enemy) {
-    float enemy_a = atan2(enemy.y - player.y, enemy.x - player.x);
-    float enemy_d = sqrt(pow(player.x - enemy.x, 2) + pow(player.y - enemy.y, 2)); 
-    int enemy_size = (SCREEN_HEIGHT/enemy_d) * scale;
-
-    int enemy_x = (enemy_a - player.a) * (SCREEN_WIDTH / player.fov) + SCREEN_WIDTH / 2.0f - enemy_size / 2.0f;
-    int enemy_y = (SCREEN_HEIGHT / 2.0f) - enemy_size / 2.0f;
-
-    for(int x = enemy_x; x < enemy_x + enemy_size; x++) {
-      for(int y = enemy_y; y < enemy_y + enemy_size; y++) {
-        int tx = (x - enemy_x) * tsize / enemy_size;
-        int ty = (y - enemy_y) * tsize / enemy_size;
-
-        Color c = ImageLoader::getPixelColor(enemy.texture, tx, ty);
-        if (c.r != 152 && c.g != 0 && c.b != 136) {
-          SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-          SDL_RenderDrawPoint(renderer, x, y);
-        }
-      }
-    }
-  }
 
   Impact cast_ray(float a) {
     float d = 0;
@@ -190,7 +207,7 @@ public:
     }
 */
     // draw right side of the screen
-    
+
     for (int i = 0; i < SCREEN_WIDTH; i++) {
       double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
       Impact impact = cast_ray(a);
@@ -207,10 +224,35 @@ public:
       draw_stake(x, h, impact, fogFactor);
     }
 
-    for(Enemy enemy : enemies) {
-      draw_enemy(enemy);
-    }
+    simulateSnow();
 
+      int xD =player.x-3*BLOCK/2;
+      int yD =player.y-3*BLOCK/2;
+      int sizeX = map[0].size();
+      int sizeY = map.size();
+
+      for (int x = 0; x < 4 * BLOCK; x += 1) {
+          for (int y = 0; y <4 * BLOCK; y += 1) {
+              double i = 1.0* (xD + x) / BLOCK;
+              double j = 1.0* (yD + y) / BLOCK;
+
+              if (i >= sizeX || j >= sizeY)
+                  continue;
+
+              int i_floor = static_cast<int>(i);
+              int j_floor = static_cast<int>(j);
+              double h = i - i_floor;
+              double f = j - j_floor;
+
+              if (map[j_floor][i_floor] != ' ') {
+                  std::string mapHit;
+                  mapHit = map[j_floor][i_floor];
+                  drawPixel(x, y, mapHit, h, f);
+              } else {
+                  point(x,y ,B);
+              }
+          }
+      }
   }
 
   Player player;
@@ -219,4 +261,8 @@ private:
   SDL_Renderer* renderer;
   std::vector<std::string> map;
   int tsize;
+  int frameCount = 0;
+  const int framesPerUpdate = 2;
+  const int numSnowflakes = 100;
+  std::vector<std::pair<int, int>> snowflakes; // Store positions of snowflakes
 };
