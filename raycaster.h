@@ -180,33 +180,10 @@ public:
     }
   } 
  
-  void render() {
+  bool render() {
 
       // Fog variables
       const float maxRenderDistance = 500.0f; // Adjust this as needed for your scene
-
-    // draw left side of the screen
-   /* 
-    for (int x = 0; x < SCREEN_WIDTH; x += BLOCK) {
-      for (int y = 0; y < SCREEN_HEIGHT; y += BLOCK) {
-        int i = static_cast<int>(x / BLOCK);
-        int j = static_cast<int>(y / BLOCK);
-        
-        if (map[j][i] != ' ') {
-          std::string mapHit;
-          mapHit = map[j][i];
-          Color c = Color(255, 0, 0);
-          rect(x, y, mapHit);
-        }
-      }
-    }
-
-    for (int i = 1; i < SCREEN_WIDTH; i++) {
-      float a = player.a + player.fov / 2 - player.fov * i / SCREEN_WIDTH;
-      cast_ray(a);
-    }
-*/
-    // draw right side of the screen
 
     for (int i = 0; i < SCREEN_WIDTH; i++) {
       double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
@@ -216,8 +193,8 @@ public:
       // Calculate fog effect based on distance
       float fogFactor = std::min(d / maxRenderDistance, 1.0f);
 
-      if (d == 0) {
-        exit(1);
+      if (d <= 0) {
+          return false;
       }
       int x = i;
       float h = static_cast<float>(SCREEN_HEIGHT)/static_cast<float>(d * cos(a - player.a)) * static_cast<float>(scale);
@@ -253,6 +230,7 @@ public:
               }
           }
       }
+      return true;
   }
 
   Player player;

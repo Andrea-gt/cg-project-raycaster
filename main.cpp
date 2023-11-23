@@ -130,7 +130,8 @@ void draw_ui() {
       int speed = 2;
       bool isMoving = false; // Flag to track if the player is moving
       int isStep = 0; // Flag to track if the player is moving
-
+      float oldX = r.player.x;
+      float oldY = r.player.y;
       // Play background music
       Mix_PlayMusic(bgMusic, -1); // -1 loops the music indefinitely
 
@@ -250,7 +251,11 @@ void draw_ui() {
           clear();
           draw_floor();
 
-          r.render();
+          if(!r.render()){
+              r.player.x = oldX;
+              r.player.y = oldY;
+              r.render();
+          };
 
           draw_ui();
           // render
@@ -264,6 +269,10 @@ void draw_ui() {
               titleStream << "FPS: " << 1000.0 / frameTime;  // Milliseconds to seconds
               SDL_SetWindowTitle(window, titleStream.str().c_str());
           }
+
+          oldX = r.player.x;
+          oldY = r.player.y;
+
       }
 
       SDL_DestroyWindow(window);
