@@ -6,7 +6,8 @@ Step into a spine-chilling adventure inspired by the eerie landscapes of Silent 
 [![Apple](https://img.shields.io/badge/C++-999999?style=for-the-badge&logo=cplusplus&logoColor=white&labelColor=yellow)]()
 
 ## Demo
-https://github.com/Andrea-gt/cg-project-raycaster/assets/77802937/40636672-43f4-4149-a81d-1c509fdf2596
+[Watch Demo Video](https://youtu.be/-Se8Awr0vpQ)
+
 
 Note: The video demonstration may display reduced FPS due to recording. Additionally, please be aware that the video does not showcase controller support directly, as it solely captures the screen. However, controller support is implemented in the code.
 
